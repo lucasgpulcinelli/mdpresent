@@ -1,8 +1,8 @@
 # ICMC/USP theme based on the 2nd edition visual identity manual, May 2016.
 document:
   page_size: A4
-  margin_left_mm: 20
-  margin_right_mm: 20
+  margin_left_mm: 15
+  margin_right_mm: 15
   margin_top_mm: 10
   margin_bottom_mm: 17
   base_font_size: 10.5
@@ -23,10 +23,10 @@ fonts:
   fallback_bold: null
 
 header:
-  height_mm: 20
-  gap_after_mm: 8
+  height_mm: 25
+  gap_after_mm: 10
   logo: assets/icmc-logo-blue.png
-  logo_width_mm: 29
+  logo_width_mm: 30
   title: null
   page_label: "PÁGINA"
   stripe_primary: accent_secondary
@@ -36,7 +36,7 @@ colors:
   background: "#F4F6F8"
   background_pattern: "#C6CEDA"
   surface: "#FFFFFF"
-  surface_alt: "#DCD6CD"
+  surface_alt: "#E4E6E8"
   text: "#303438"
   muted_text: "#727376"
   title_text: "#526B8B"
