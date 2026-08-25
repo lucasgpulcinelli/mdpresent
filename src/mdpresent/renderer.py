@@ -244,9 +244,11 @@ class HeaderPainter:
         panel.close()
         canvas.drawPath(panel, fill=1, stroke=0)
 
-        canvas.setFillColor(self.theme.color("accent"))
+        stripe_primary = str(self.header.get("stripe_primary", "accent"))
+        stripe_secondary = str(self.header.get("stripe_secondary", "accent_secondary"))
+        canvas.setFillColor(self.theme.color(stripe_primary))
         canvas.rect(0, header_y, page_width * 0.66, accent_height, fill=1, stroke=0)
-        canvas.setFillColor(self.theme.color("accent_secondary"))
+        canvas.setFillColor(self.theme.color(stripe_secondary))
         canvas.rect(page_width * 0.66, header_y, page_width * 0.34, accent_height, fill=1, stroke=0)
 
         left = float(self.theme.data["document"]["margin_left_mm"]) * mm

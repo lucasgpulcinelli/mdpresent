@@ -32,6 +32,10 @@ def test_icmc_theme_uses_manual_palette_logo_and_droid_sans() -> None:
     assert {"#F6AA41", "#72849D", "#C6CEDA", "#727376", "#DCD6CD"} <= palette
     assert _family_name(theme.fonts.regular) == "Droid Sans"
     assert theme.resolve_path(theme.data["header"]["logo"], ROOT).is_file()
+    assert theme.data["colors"]["header_background"] == "#C6CEDA"
+    assert theme.data["header"]["stripe_primary"] == "accent_secondary"
+    assert theme.data["header"]["stripe_secondary"] == "header_background"
+    assert Path(theme.data["header"]["logo"]).name == "icmc-logo-blue.png"
 
 
 @pytest.mark.parametrize("theme_name", ["icmc"])
@@ -40,4 +44,3 @@ def test_brand_theme_renders_a_pdf(theme_name: str, tmp_path: Path) -> None:
     source.write_text("# Branded report\n\nBody text with **emphasis**.\n", encoding="utf-8")
     output = render_markdown(source, tmp_path / f"{theme_name}.pdf", THEMES / f"{theme_name}.yml")
     assert "Branded report" in (PdfReader(output).pages[0].extract_text() or "")
-

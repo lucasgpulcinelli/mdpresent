@@ -25,10 +25,12 @@ fonts:
 header:
   height_mm: 20
   gap_after_mm: 8
-  logo: assets/icmc-logo.png
+  logo: assets/icmc-logo-blue.png
   logo_width_mm: 29
   title: null
   page_label: "PÁGINA"
+  stripe_primary: accent_secondary
+  stripe_secondary: header_background
 
 colors:
   background: "#F4F6F8"
@@ -42,9 +44,9 @@ colors:
   accent: "#F6AA41"
   accent_secondary: "#72849D"
   link: "#526B8B"
-  header_background: "#FFFFFF"
+  header_background: "#C6CEDA"
   header_panel: "#72849D"
-  header_text: "#526B8B"
+  header_text: "#303438"
   header_muted: "#FFFFFF"
   table_header: "#72849D"
   table_header_accent: "#F6AA41"

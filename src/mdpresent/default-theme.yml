@@ -28,6 +28,8 @@ header:
   logo_width_mm: 20
   title: null
   page_label: "PAGE"
+  stripe_primary: accent
+  stripe_secondary: accent_secondary
 
 colors:
   background: "#F7F4EE"

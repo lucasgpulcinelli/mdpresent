@@ -30,7 +30,7 @@ An example branded theme is included:
 mdpresent examples/features.md -c themes/icmc.yml -o features-icmc.pdf
 ```
 
-The ICMC theme follows the supplied ICMC/USP identity manual.  See `themes/README.md` for the source details.
+The ICMC theme follows the supplied ICMC/USP identity manual with a blue-only header.  See `themes/README.md` for the source details.
 
 To make a complete editable theme file:
 
