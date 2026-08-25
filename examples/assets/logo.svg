@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="54" viewBox="0 0 180 54">
+  <path fill="{{ logo_primary }}" d="M0 9a9 9 0 0 1 9-9h36v54H9a9 9 0 0 1-9-9z"/>
+  <path fill="{{ logo_secondary }}" d="M45 0h126a9 9 0 0 1 9 9v36a9 9 0 0 1-9 9H45z"/>
+  <path fill="{{ logo_secondary }}" d="M12 15h21v5H12zm0 10h21v5H12zm0 10h15v5H12z"/>
+  <path fill="{{ logo_primary }}" d="M60 14h8l8 13 8-13h8v27h-7V25l-9 13-9-13v16h-7zm40 0h10c10 0 16 5 16 13s-6 14-16 14h-10zm8 6v15h2c5 0 8-3 8-8s-3-7-8-7zm25-6h9v27h-9z"/>
+</svg>
+

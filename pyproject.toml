@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mdpresent"
+version = "0.1.0"
+description = "Render polished, themed PDF documents from Markdown with ReportLab."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "mdpresent contributors" }]
+dependencies = [
+  "markdown-it-py>=4.0,<5",
+  "mdit-py-plugins>=0.5,<1",
+  "Pillow>=11,<13",
+  "Pygments>=2.19,<3",
+  "PyYAML>=6.0,<7",
+  "reportlab>=4.4,<5",
+  "svglib>=1.5.1,<1.6",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pypdf>=5.9,<7",
+  "pytest>=8.4,<10",
+]
+
+[project.scripts]
+mdpresent = "mdpresent.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mdpresent"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]

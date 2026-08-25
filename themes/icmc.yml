@@ -1,0 +1,93 @@
+# ICMC/USP theme based on the 2nd edition visual identity manual, May 2016.
+document:
+  page_size: A4
+  margin_left_mm: 20
+  margin_right_mm: 20
+  margin_top_mm: 10
+  margin_bottom_mm: 17
+  base_font_size: 10.5
+  line_height: 1.38
+  background_pattern: none
+  background_pattern_spacing_mm: 14
+  background_pattern_radius_pt: 0.45
+
+fonts:
+  regular: fonts/DroidSans.ttf
+  bold: fonts/DroidSans-Bold.ttf
+  italic: fonts/DroidSans.ttf
+  bold_italic: fonts/DroidSans-Bold.ttf
+  heading_regular: fonts/DroidSans.ttf
+  heading_bold: fonts/DroidSans-Bold.ttf
+  monospace: null
+  fallback_regular: null
+  fallback_bold: null
+
+header:
+  height_mm: 20
+  gap_after_mm: 8
+  logo: assets/icmc-logo.png
+  logo_width_mm: 29
+  title: null
+  page_label: "PÁGINA"
+
+colors:
+  background: "#F4F6F8"
+  background_pattern: "#C6CEDA"
+  surface: "#FFFFFF"
+  surface_alt: "#DCD6CD"
+  text: "#303438"
+  muted_text: "#727376"
+  title_text: "#526B8B"
+  heading_text: "#526B8B"
+  accent: "#F6AA41"
+  accent_secondary: "#72849D"
+  link: "#526B8B"
+  header_background: "#FFFFFF"
+  header_panel: "#72849D"
+  header_text: "#526B8B"
+  header_muted: "#FFFFFF"
+  table_header: "#72849D"
+  table_header_accent: "#F6AA41"
+  table_header_text: "#FFFFFF"
+  table_row_odd: "#FFFFFF"
+  table_row_even: "#E7EBF0"
+  table_grid: "#C6CEDA"
+  code_background: "#E7EBF0"
+  code_border: "#72849D"
+  code_text: "#303438"
+  code_keyword: "#526B8B"
+  code_string: "#9A651B"
+  code_comment: "#727376"
+  code_number: "#526B8B"
+  blockquote_background: "#E7EBF0"
+  blockquote_border: "#F6AA41"
+  blockquote_text: "#4B5055"
+  rule: "#DCD6CD"
+  diagram_background: "#FFFFFF"
+  diagram_primary: "#DCE2E9"
+  diagram_secondary: "#FCE7CA"
+  diagram_tertiary: "#E7EBF0"
+  diagram_text: "#303438"
+  diagram_line: "#72849D"
+  diagram_note: "#FCE7CA"
+  diagram_border: "#C6CEDA"
+  logo_primary: "#F6AA41"
+  logo_secondary: "#72849D"
+
+spacing:
+  paragraph_after_mm: 3.2
+  heading_before_mm: 5
+  heading_after_mm: 2.4
+  list_indent_mm: 5.5
+  list_gap_mm: 1.4
+
+mermaid:
+  cli: null
+  chrome: null
+  render_width: 1800
+  render_height: 1200
+  landscape_when_scale_below: 0.80
+  split_when_scale_below: 0.58
+  tile_scale: 0.68
+  tile_overlap_mm: 8
+  cache: true

@@ -1,0 +1,9 @@
+{
+  "name": "mdpresent-mermaid-runtime",
+  "private": true,
+  "description": "Local Mermaid CLI runtime for mDpresent",
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "11.15.0"
+  }
+}
+

@@ -1,0 +1,92 @@
+document:
+  page_size: A4
+  margin_left_mm: 20
+  margin_right_mm: 20
+  margin_top_mm: 10
+  margin_bottom_mm: 17
+  base_font_size: 10.5
+  line_height: 1.38
+  background_pattern: none
+  background_pattern_spacing_mm: 14
+  background_pattern_radius_pt: 0.45
+
+fonts:
+  regular: null
+  bold: null
+  italic: null
+  bold_italic: null
+  heading_regular: null
+  heading_bold: null
+  monospace: null
+  fallback_regular: null
+  fallback_bold: null
+
+header:
+  height_mm: 18
+  gap_after_mm: 8
+  logo: builtin
+  logo_width_mm: 20
+  title: null
+  page_label: "PAGE"
+
+colors:
+  background: "#F7F4EE"
+  background_pattern: "#D8D0C3"
+  surface: "#FFFDF8"
+  surface_alt: "#E8E1D4"
+  text: "#263238"
+  muted_text: "#667078"
+  title_text: "#16324F"
+  heading_text: "#16324F"
+  accent: "#D76A3A"
+  accent_secondary: "#2A7F8E"
+  link: "#1D6FA3"
+  header_background: "#16324F"
+  header_panel: "#244C65"
+  header_text: "#FFFDF8"
+  header_muted: "#C8D9DE"
+  table_header: "#244C65"
+  table_header_accent: "#D76A3A"
+  table_header_text: "#FFFDF8"
+  table_row_odd: "#FFFDF8"
+  table_row_even: "#EAF0ED"
+  table_grid: "#9CB0AE"
+  code_background: "#E9E4DA"
+  code_border: "#2A7F8E"
+  code_text: "#243038"
+  code_keyword: "#8C3C68"
+  code_string: "#8A5700"
+  code_comment: "#667078"
+  code_number: "#1D6FA3"
+  blockquote_background: "#E5EFEF"
+  blockquote_border: "#2A7F8E"
+  blockquote_text: "#38515A"
+  rule: "#9CB0AE"
+  diagram_background: "#FFFDF8"
+  diagram_primary: "#DDEBE8"
+  diagram_secondary: "#F3D8C9"
+  diagram_tertiary: "#E7E0F0"
+  diagram_text: "#20343B"
+  diagram_line: "#46656C"
+  diagram_note: "#FFF0BF"
+  diagram_border: "#9CB0AE"
+  logo_primary: "#D76A3A"
+  logo_secondary: "#2A7F8E"
+
+spacing:
+  paragraph_after_mm: 3.2
+  heading_before_mm: 5
+  heading_after_mm: 2.4
+  list_indent_mm: 5.5
+  list_gap_mm: 1.4
+
+mermaid:
+  cli: null
+  chrome: null
+  render_width: 1800
+  render_height: 1200
+  landscape_when_scale_below: 0.80
+  split_when_scale_below: 0.58
+  tile_scale: 0.68
+  tile_overlap_mm: 8
+  cache: true
