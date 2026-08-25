@@ -34,7 +34,7 @@ def test_icmc_theme_uses_manual_palette_logo_and_droid_sans() -> None:
     assert theme.resolve_path(theme.data["header"]["logo"], ROOT).is_file()
     assert theme.data["colors"]["header_background"] == "#C6CEDA"
     assert theme.data["header"]["stripe_primary"] == "accent_secondary"
-    assert theme.data["header"]["stripe_secondary"] == "header_background"
+    assert theme.data["header"]["stripe_secondary"] == "accent_secondary"
     assert Path(theme.data["header"]["logo"]).name == "icmc-logo-blue.png"
 
 

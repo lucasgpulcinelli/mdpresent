@@ -30,7 +30,7 @@ header:
   title: null
   page_label: "PÁGINA"
   stripe_primary: accent_secondary
-  stripe_secondary: header_background
+  stripe_secondary: accent_secondary
 
 colors:
   background: "#F4F6F8"
