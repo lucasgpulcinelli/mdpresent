@@ -20,7 +20,7 @@ from pygments.token import Comment, Keyword, Literal, Number, String
 from reportlab.graphics import renderPDF
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from reportlab.lib.pagesizes import A4, LEGAL, LETTER, landscape
+from reportlab.lib.pagesizes import A4, LEGAL, LETTER
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
@@ -44,8 +44,10 @@ from reportlab.lib.utils import ImageReader
 
 from .config import ConfigError, Theme, load_theme
 from .markdown_parser import (
+    AdmonitionBlock,
     Block,
     CodeBlock,
+    DefinitionListBlock,
     FootnotesBlock,
     Heading,
     HtmlBlock,
@@ -120,8 +122,59 @@ class VectorDrawingFlowable(Flowable):
         self.canv.restoreState()
 
 
+class FigureFlowable(Flowable):
+    """Keep an image, its label, and its optional link together."""
+
+    def __init__(
+        self,
+        media: Flowable,
+        media_width: float,
+        media_height: float,
+        label_markup: str | None,
+        label_style: ParagraphStyle,
+        link: str | None = None,
+        anchor: str | None = None,
+    ) -> None:
+        super().__init__()
+        self.media = media
+        self.media_width = media_width
+        self.media_height = media_height
+        self.label = Paragraph(label_markup, label_style) if label_markup else None
+        self.label_gap = 1.5 * mm if self.label else 0.0
+        self.link = link
+        self.anchor = anchor
+        self.width = media_width
+        self.height = media_height
+
+    def wrap(self, availWidth: float, availHeight: float) -> tuple[float, float]:
+        self._avail_width = availWidth
+        self.media.wrap(self.media_width, self.media_height)
+        label_height = 0.0
+        if self.label:
+            _, label_height = self.label.wrap(availWidth, availHeight)
+        self._label_height = label_height
+        self.width = availWidth
+        self.height = self.media_height + self.label_gap + label_height
+        return self.width, self.height
+
+    def draw(self) -> None:
+        media_x = max(0.0, (self._avail_width - self.media_width) / 2)
+        media_y = self._label_height + self.label_gap
+        if self.anchor:
+            self.canv.bookmarkHorizontal(self.anchor, 0, self.height)
+        self.media.drawOn(self.canv, media_x, media_y, _sW=0)
+        if self.link:
+            rectangle = (media_x, media_y, media_x + self.media_width, media_y + self.media_height)
+            if self.link.startswith("#"):
+                self.canv.linkRect("", self.link[1:], rectangle, relative=1)
+            else:
+                self.canv.linkURL(self.link, rectangle, relative=1)
+        if self.label:
+            self.label.drawOn(self.canv, 0, 0)
+
+
 class DiagramPageFlowable(Flowable):
-    """A complete diagram page, optionally showing one crop of a larger SVG."""
+    """A complete, uncropped diagram on a page sized for readable vector text."""
 
     def __init__(
         self,
@@ -133,10 +186,6 @@ class DiagramPageFlowable(Flowable):
         surface_color: colors.Color,
         border_color: colors.Color,
         scale: float,
-        crop_x: float = 0,
-        crop_y_top: float = 0,
-        part: int = 1,
-        part_count: int = 1,
     ) -> None:
         super().__init__()
         self.asset = asset
@@ -147,10 +196,6 @@ class DiagramPageFlowable(Flowable):
         self.surface_color = surface_color
         self.border_color = border_color
         self.scale = scale
-        self.crop_x = crop_x
-        self.crop_y_top = crop_y_top
-        self.part = part
-        self.part_count = part_count
         self.label_height = label_style.leading + 3 * mm
 
     def wrap(self, availWidth: float, availHeight: float) -> tuple[float, float]:
@@ -162,10 +207,7 @@ class DiagramPageFlowable(Flowable):
         frame_width = self._frame_width
         frame_height = min(self.height, self._frame_height - 0.5)
         viewport_height = frame_height - self.label_height
-        label = self.label
-        if self.part_count > 1:
-            label = f"{label}  |  part {self.part} of {self.part_count}"
-        paragraph = Paragraph(escape(label), self.label_style)
+        paragraph = Paragraph(escape(self.label), self.label_style)
         _, label_h = paragraph.wrap(frame_width, self.label_height)
 
         self.canv.saveState()
@@ -186,16 +228,8 @@ class DiagramPageFlowable(Flowable):
 
         scaled_width = self.asset.width * self.scale
         scaled_height = self.asset.height * self.scale
-        if self.part_count == 1:
-            x_offset = max(0, (view_width - scaled_width) / 2)
-            y_offset = max(0, (view_height - scaled_height) / 2)
-        else:
-            x_offset = -self.crop_x
-            if scaled_height <= view_height:
-                y_offset = (view_height - scaled_height) / 2
-            else:
-                lower_crop = scaled_height - self.crop_y_top - view_height
-                y_offset = -max(0, lower_crop)
+        x_offset = max(0, (view_width - scaled_width) / 2)
+        y_offset = max(0, (view_height - scaled_height) / 2)
 
         self.canv.translate(view_x + x_offset, view_y + y_offset)
         self.canv.scale(
@@ -208,8 +242,8 @@ class DiagramPageFlowable(Flowable):
 
 @dataclass
 class DiagramPlan:
-    orientation: str
-    pages: list[DiagramPageFlowable]
+    template_id: str
+    page: DiagramPageFlowable | None = None
     inline: VectorDrawingFlowable | None = None
 
 
@@ -372,13 +406,13 @@ class MarkdownPdfRenderer:
         self.diagram_renderer: MermaidRenderer | None = None
         self.styles = self._make_styles()
         self.diagram_count = 0
+        self.diagram_page_sizes: dict[str, tuple[float, float]] = {}
         self.first_h1_seen = False
 
         page_name = str(theme.data["document"]["page_size"]).upper()
         if page_name not in PAGE_SIZES:
             raise ConfigError(f"Unsupported page size: {page_name}. Use A4, LETTER, or LEGAL")
         self.portrait_size = PAGE_SIZES[page_name]
-        self.landscape_size = landscape(self.portrait_size)
         self.left_margin = float(theme.data["document"]["margin_left_mm"]) * mm
         self.right_margin = float(theme.data["document"]["margin_right_mm"]) * mm
         self.bottom_margin = float(theme.data["document"]["margin_bottom_mm"]) * mm
@@ -394,7 +428,6 @@ class MarkdownPdfRenderer:
         painter = HeaderPainter(self.theme, title, self.document_dir)
 
         portrait_frame, portrait_body = self._frame_for(self.portrait_size, "portrait-body")
-        landscape_frame, landscape_body = self._frame_for(self.landscape_size, "landscape-body")
         templates = {
             "portrait": PageTemplate(
                 id="portrait",
@@ -402,21 +435,26 @@ class MarkdownPdfRenderer:
                 frames=[portrait_frame],
                 onPage=painter,
             ),
-            "landscape": PageTemplate(
-                id="landscape",
-                pagesize=self.landscape_size,
-                frames=[landscape_frame],
-                onPage=painter,
-            ),
         }
 
-        story, first_orientation = self._build_story(portrait_body, landscape_body)
+        story, first_template = self._build_story(portrait_body)
+        for template_id, page_size in self.diagram_page_sizes.items():
+            frame, _ = self._frame_for(page_size, f"{template_id}-body")
+            templates[template_id] = PageTemplate(
+                id=template_id,
+                pagesize=page_size,
+                frames=[frame],
+                onPage=painter,
+            )
         if not story:
             story = [Paragraph("", self.styles["body"])]
-        ordered_templates = [templates[first_orientation], templates["landscape" if first_orientation == "portrait" else "portrait"]]
+        ordered_templates = [templates[first_template]]
+        ordered_templates.extend(
+            template for name, template in templates.items() if name != first_template
+        )
         doc = ThemedDocTemplate(
             str(self.output_path),
-            pagesize=self.portrait_size if first_orientation == "portrait" else self.landscape_size,
+            pagesize=templates[first_template].pagesize,
             leftMargin=self.left_margin,
             rightMargin=self.right_margin,
             topMargin=self.top_margin,
@@ -450,69 +488,71 @@ class MarkdownPdfRenderer:
     def _build_story(
         self,
         portrait_body: tuple[float, float],
-        landscape_body: tuple[float, float],
     ) -> tuple[list[Flowable], str]:
         assert self.parsed is not None
         story: list[Flowable] = []
-        current_orientation = "portrait"
-        first_orientation = "portrait"
+        current_template = "portrait"
+        first_template = "portrait"
         started = False
         last_was_dedicated = False
 
         for block in self.parsed.blocks:
             if isinstance(block, MermaidBlock):
-                plan = self._plan_diagram(block, portrait_body, landscape_body)
+                plan = self._plan_diagram(block, portrait_body)
                 if plan.inline:
-                    if last_was_dedicated or current_orientation != "portrait":
-                        if current_orientation != "portrait":
+                    if last_was_dedicated or current_template != "portrait":
+                        if current_template != "portrait":
                             story.append(NextPageTemplate("portrait"))
                         story.append(PageBreak())
-                        current_orientation = "portrait"
+                        current_template = "portrait"
                     story.append(plan.inline)
                     started = True
                     last_was_dedicated = False
                     continue
 
                 if started:
-                    if current_orientation != plan.orientation:
-                        story.append(NextPageTemplate(plan.orientation))
+                    if current_template != plan.template_id:
+                        story.append(NextPageTemplate(plan.template_id))
                     story.append(PageBreak())
                 else:
-                    first_orientation = plan.orientation
-                current_orientation = plan.orientation
-                for page_index, page in enumerate(plan.pages):
-                    if page_index:
-                        story.append(PageBreak())
-                    story.append(page)
+                    first_template = plan.template_id
+                current_template = plan.template_id
+                assert plan.page is not None
+                story.append(plan.page)
                 started = True
                 last_was_dedicated = True
                 continue
 
             if last_was_dedicated:
-                if current_orientation != "portrait":
+                if current_template != "portrait":
                     story.append(NextPageTemplate("portrait"))
                 story.append(PageBreak())
-                current_orientation = "portrait"
+                current_template = "portrait"
                 last_was_dedicated = False
             flowables = self._block_flowables(block, portrait_body[0])
             if flowables:
                 story.extend(flowables)
                 started = True
 
-        return story, first_orientation
+        return story, first_template
 
     def _block_flowables(self, block: Block, available_width: float) -> list[Flowable]:
         if isinstance(block, Heading):
             return [self._heading(block)]
         if isinstance(block, MarkdownParagraph):
-            image = _standalone_image(block.children)
-            if image:
-                return self._image_flowables(image, available_width)
+            standalone_image = _standalone_image(block.children)
+            if standalone_image:
+                image, link = standalone_image
+                return self._image_flowables(image, available_width, link)
             return [Paragraph(self._inline_markup(block.children), self.styles["body"])]
         if isinstance(block, CodeBlock):
             return [self._code_flowable(block)]
         if isinstance(block, ListBlock):
             return [self._list_flowable(block, available_width)]
+        if isinstance(block, DefinitionListBlock):
+            return self._definition_list_flowables(block, available_width)
+        if isinstance(block, AdmonitionBlock):
+            return self._admonition_flowables(block, available_width)
         if isinstance(block, QuoteBlock):
             nested: list[Flowable] = []
             for child in block.blocks:
@@ -622,6 +662,62 @@ class MarkdownPdfRenderer:
             bulletOffsetY=1.5,
             spaceAfter=float(self.theme.data["spacing"]["list_gap_mm"]) * mm,
         )
+
+    def _definition_list_flowables(
+        self,
+        block: DefinitionListBlock,
+        available_width: float,
+    ) -> list[Flowable]:
+        flowables: list[Flowable] = []
+        indent = 5 * mm
+        for term, definitions in block.items:
+            flowables.append(Paragraph(self._inline_markup(term), self.styles["definition_term"]))
+            for definition in definitions:
+                nested: list[Flowable] = []
+                for child in definition:
+                    nested.extend(self._block_flowables(child, available_width - indent))
+                if not nested:
+                    nested.append(Paragraph("", self.styles["body"]))
+                panel = Table([[nested]], colWidths=[available_width - indent], hAlign="RIGHT")
+                panel.setStyle(
+                    TableStyle(
+                        [
+                            ("LINEBEFORE", (0, 0), (0, -1), 1.2, self.theme.color("accent_secondary")),
+                            ("LEFTPADDING", (0, 0), (-1, -1), 3 * mm),
+                            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                            ("TOPPADDING", (0, 0), (-1, -1), 0),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                        ]
+                    )
+                )
+                flowables.append(panel)
+            flowables.append(Spacer(1, 1.5 * mm))
+        return flowables
+
+    def _admonition_flowables(
+        self,
+        block: AdmonitionBlock,
+        available_width: float,
+    ) -> list[Flowable]:
+        default_title = block.kind.replace("_", " ").title()
+        title = self._inline_markup(block.title) if block.title else escape(default_title)
+        nested: list[Flowable] = [Paragraph(title, self.styles["admonition_title"])]
+        for child in block.blocks:
+            nested.extend(self._block_flowables(child, available_width - 10 * mm))
+        panel = Table([[nested]], colWidths=[available_width], hAlign="LEFT")
+        panel.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), self.theme.color("surface_alt")),
+                    ("LINEBEFORE", (0, 0), (0, -1), 4, self.theme.color("accent")),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5 * mm),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4 * mm),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3 * mm),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5 * mm),
+                ]
+            )
+        )
+        return [panel, Spacer(1, 2.5 * mm)]
 
     def _table_flowable(self, block: TableBlock, available_width: float) -> Table:
         column_count = max(1, len(block.header), *(len(row) for row in block.rows))
@@ -770,6 +866,14 @@ class MarkdownPdfRenderer:
                 parts.append("<strike>")
             elif kind == "s_close":
                 parts.append("</strike>")
+            elif kind == "sub_open":
+                parts.append("<sub>")
+            elif kind == "sub_close":
+                parts.append("</sub>")
+            elif kind == "sup_open":
+                parts.append("<super>")
+            elif kind == "sup_close":
+                parts.append("</super>")
             elif kind == "link_open":
                 href = escape(token.attrGet("href") or "", quote=True)
                 parts.append(f'<link href="{href}" color="{self.theme.color_hex("link")}">')
@@ -836,32 +940,64 @@ class MarkdownPdfRenderer:
                 return True
         return False
 
-    def _image_flowables(self, token: Token, available_width: float) -> list[Flowable]:
+    def _image_flowables(
+        self,
+        token: Token,
+        available_width: float,
+        link: str | None = None,
+    ) -> list[Flowable]:
         source = token.attrGet("src") or ""
-        alt = token.content.strip()
         path = self._resolve_image(source)
         max_height = self._portrait_body_height() * 0.62
+        requested_width = _image_dimension(token.attrGet("width"), available_width, "width")
+        requested_height = _image_dimension(token.attrGet("height"), max_height, "height")
+        width_limit = min(requested_width or available_width, available_width)
+        height_limit = min(requested_height or max_height, max_height)
+
         if path.suffix.lower() == ".svg":
             asset = load_svg_asset(path)
-            scale = min(available_width / asset.width, max_height / asset.height, 1.25)
-            image: Flowable = VectorDrawingFlowable(
+            natural_width, natural_height = asset.width, asset.height
+            scale = min(width_limit / natural_width, height_limit / natural_height)
+            if requested_width is None and requested_height is None:
+                scale = min(scale, 1.25)
+            media_width = natural_width * scale
+            media_height = natural_height * scale
+            media: Flowable = VectorDrawingFlowable(
                 asset,
-                asset.width * scale,
-                asset.height * scale,
+                media_width,
+                media_height,
                 None,
                 self.styles["caption"],
             )
         else:
             image = Image(str(path))
-            scale = min(available_width / image.imageWidth, max_height / image.imageHeight, 1.0)
-            image.drawWidth = image.imageWidth * scale
-            image.drawHeight = image.imageHeight * scale
-            image.hAlign = "CENTER"
-        flowables = [image]
-        if alt:
-            flowables.append(Paragraph(escape(alt), self.styles["caption"]))
-        flowables.append(Spacer(1, 2.5 * mm))
-        return flowables
+            natural_width, natural_height = image.imageWidth, image.imageHeight
+            scale = min(width_limit / natural_width, height_limit / natural_height)
+            if requested_width is None and requested_height is None:
+                scale = min(scale, 1.0)
+            media_width = natural_width * scale
+            media_height = natural_height * scale
+            image.drawWidth = media_width
+            image.drawHeight = media_height
+            media = image
+
+        explicit_label = token.attrGet("label") or token.attrGet("title")
+        if explicit_label:
+            label_markup = self._text_markup(explicit_label)
+        elif token.children:
+            label_markup = self._inline_markup(token.children)
+        else:
+            label_markup = self._text_markup(token.content.strip()) if token.content.strip() else None
+        figure = FigureFlowable(
+            media,
+            media_width,
+            media_height,
+            label_markup,
+            self.styles["caption"],
+            link=link,
+            anchor=token.attrGet("id"),
+        )
+        return [figure, Spacer(1, 2.5 * mm)]
 
     def _resolve_image(self, source: str) -> Path:
         parsed = urlparse(source)
@@ -896,7 +1032,6 @@ class MarkdownPdfRenderer:
         self,
         block: MermaidBlock,
         portrait_body: tuple[float, float],
-        landscape_body: tuple[float, float],
     ) -> DiagramPlan:
         asset, label = self._render_diagram(block)
         caption_height = self.styles["caption"].leading + 5 * mm
@@ -906,17 +1041,17 @@ class MarkdownPdfRenderer:
             1.25,
         )
         settings = self.theme.data["mermaid"]
-        landscape_threshold = float(settings["landscape_when_scale_below"])
+        dedicated_page_threshold = float(settings["dedicated_page_when_scale_below"])
+        minimum_scale = float(settings["minimum_font_size"]) / float(settings["font_size"])
+        inline_scale = min(
+            portrait_body[0] / asset.width,
+            (portrait_body[1] * 0.70) / asset.height,
+            1.15,
+        )
 
-        if portrait_fit >= landscape_threshold:
-            inline_scale = min(
-                portrait_body[0] / asset.width,
-                (portrait_body[1] * 0.70) / asset.height,
-                1.15,
-            )
+        if portrait_fit >= dedicated_page_threshold and inline_scale >= minimum_scale:
             return DiagramPlan(
-                orientation="portrait",
-                pages=[],
+                template_id="portrait",
                 inline=VectorDrawingFlowable(
                     asset,
                     asset.width * inline_scale,
@@ -926,66 +1061,34 @@ class MarkdownPdfRenderer:
                 ),
             )
 
-        portrait_page_fit = min(
+        configured_page_fit = min(
             (portrait_body[0] - 6 * mm) / asset.width,
             (portrait_body[1] - caption_height - 3 * mm) / asset.height,
             1.25,
         )
-        landscape_fit = min(
-            (landscape_body[0] - 6 * mm) / asset.width,
-            (landscape_body[1] - caption_height - 3 * mm) / asset.height,
-            1.25,
+        scale = max(configured_page_fit, minimum_scale)
+        label_height = self.styles["diagram_label"].leading + 3 * mm
+        required_body_width = asset.width * scale + 6 * mm
+        required_body_height = asset.height * scale + label_height + 3 * mm
+        page_size = (
+            max(self.portrait_size[0], required_body_width + self.left_margin + self.right_margin),
+            max(self.portrait_size[1], required_body_height + self.top_margin + self.bottom_margin),
         )
-        orientation = "landscape" if landscape_fit > portrait_page_fit * 1.06 else "portrait"
-        body = landscape_body if orientation == "landscape" else portrait_body
-        fit = landscape_fit if orientation == "landscape" else portrait_page_fit
-        split_threshold = float(settings["split_when_scale_below"])
-
-        if fit >= split_threshold:
-            page = DiagramPageFlowable(
-                asset,
-                body[0],
-                body[1],
-                label,
-                self.styles["diagram_label"],
-                self.theme.color("surface"),
-                self.theme.color("diagram_border"),
-                fit,
-            )
-            return DiagramPlan(orientation=orientation, pages=[page])
-
-        tile_scale = max(float(settings["tile_scale"]), split_threshold)
-        inset = 6 * mm
-        view_width = body[0] - inset
-        view_height = body[1] - self.styles["diagram_label"].leading - 6 * mm
-        overlap = float(settings["tile_overlap_mm"]) * mm
-        scaled_width = asset.width * tile_scale
-        scaled_height = asset.height * tile_scale
-        x_starts = _tile_starts(scaled_width, view_width, overlap)
-        y_starts = _tile_starts(scaled_height, view_height, overlap)
-        part_count = len(x_starts) * len(y_starts)
-        pages: list[DiagramPageFlowable] = []
-        part = 0
-        for y_start in y_starts:
-            for x_start in x_starts:
-                part += 1
-                pages.append(
-                    DiagramPageFlowable(
-                        asset,
-                        body[0],
-                        body[1],
-                        label,
-                        self.styles["diagram_label"],
-                        self.theme.color("surface"),
-                        self.theme.color("diagram_border"),
-                        tile_scale,
-                        crop_x=x_start,
-                        crop_y_top=y_start,
-                        part=part,
-                        part_count=part_count,
-                    )
-                )
-        return DiagramPlan(orientation=orientation, pages=pages)
+        body_width = page_size[0] - self.left_margin - self.right_margin
+        body_height = page_size[1] - self.top_margin - self.bottom_margin
+        template_id = f"diagram-{self.diagram_count}"
+        self.diagram_page_sizes[template_id] = page_size
+        page = DiagramPageFlowable(
+            asset,
+            body_width,
+            body_height,
+            label,
+            self.styles["diagram_label"],
+            self.theme.color("surface"),
+            self.theme.color("diagram_border"),
+            scale,
+        )
+        return DiagramPlan(template_id=template_id, page=page)
 
     def _make_styles(self) -> dict[str, ParagraphStyle]:
         document = self.theme.data["document"]
@@ -1034,6 +1137,23 @@ class MarkdownPdfRenderer:
             "list-body",
             parent=body,
             spaceAfter=float(spacing["list_gap_mm"]) * mm,
+        )
+        styles["definition_term"] = ParagraphStyle(
+            "definition-term",
+            parent=body,
+            fontName=self.theme.fonts.heading_bold,
+            textColor=self.theme.color("heading_text"),
+            spaceBefore=1.5 * mm,
+            spaceAfter=0.8 * mm,
+            keepWithNext=True,
+        )
+        styles["admonition_title"] = ParagraphStyle(
+            "admonition-title",
+            parent=body,
+            fontName=self.theme.fonts.heading_bold,
+            textColor=self.theme.color("heading_text"),
+            spaceAfter=1.2 * mm,
+            keepWithNext=True,
         )
         styles["caption"] = ParagraphStyle(
             "caption",
@@ -1088,15 +1208,6 @@ class MarkdownPdfRenderer:
         return self.portrait_size[1] - self.top_margin - self.bottom_margin
 
 
-def _tile_starts(content_size: float, viewport_size: float, overlap: float) -> list[float]:
-    if content_size <= viewport_size:
-        return [0.0]
-    step = max(1.0, viewport_size - min(overlap, viewport_size * 0.25))
-    count = math.ceil((content_size - overlap) / step)
-    maximum = content_size - viewport_size
-    return [min(index * step, maximum) for index in range(count)]
-
-
 def _ellipsize(text: str, font: str, size: float, max_width: float) -> str:
     if pdfmetrics.stringWidth(text, font, size) <= max_width:
         return text
@@ -1112,9 +1223,31 @@ def _ellipsize(text: str, font: str, size: float, max_width: float) -> str:
     return text[:low].rstrip() + suffix
 
 
-def _standalone_image(tokens: list[Token]) -> Token | None:
+def _image_dimension(value: str | None, reference: float, attribute: str) -> float | None:
+    if not value:
+        return None
+    match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)\s*(%|mm|cm|in|pt|px)?\s*", value)
+    if not match:
+        raise RenderError(
+            f"Invalid image {attribute} {value!r}; use %, mm, cm, in, pt, or px"
+        )
+    amount = float(match.group(1))
+    unit = match.group(2) or "px"
+    if amount <= 0:
+        raise RenderError(f"Image {attribute} must be greater than zero")
+    factors = {"mm": mm, "cm": 10 * mm, "in": 72.0, "pt": 1.0, "px": 1.0}
+    return reference * amount / 100 if unit == "%" else amount * factors[unit]
+
+
+def _standalone_image(tokens: list[Token]) -> tuple[Token, str | None] | None:
     meaningful = [token for token in tokens if token.type not in {"link_open", "link_close"}]
-    return meaningful[0] if len(meaningful) == 1 and meaningful[0].type == "image" else None
+    if len(meaningful) != 1 or meaningful[0].type != "image":
+        return None
+    link = next(
+        (token.attrGet("href") for token in tokens if token.type == "link_open"),
+        None,
+    )
+    return meaningful[0], link
 
 
 def render_markdown(

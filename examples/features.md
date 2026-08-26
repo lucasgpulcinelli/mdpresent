@@ -29,6 +29,23 @@ This sample exercises ordinary Markdown and the awkward corners that tend to bre
 
 > Good pagination is quiet. Readers notice it only when a table loses its header, a list marker drifts away from its text, or a diagram becomes too small to read.
 
+## Definitions and callouts
+
+Render contract
+: The source, theme, and assets needed to reproduce the same document.
+
+Vector asset
+: An SVG illustration or chart that remains sharp at any PDF zoom level.
+
+!!! note "One source, several presentation layers"
+    Extensions such as H~2~O and release^candidate^ annotations use native subscript and superscript markup. The same source can still be read as plain text.
+
+## A labeled, linked image
+
+[![Three stages in a document pipeline](assets/report-pipeline.svg "Figure 1 — Source, renderer, and PDF output"){#fig-report-pipeline width="82%"}](https://www.reportlab.com/)
+
+The standard image title becomes the visible label. Optional attributes can add an anchor and set `width`, `height`, or an explicit `label`.
+
 ## A table with alignment and wrapping
 
 | Area | Current behavior | Target | Owner | Status |
@@ -75,4 +92,3 @@ Footnotes stay with the document rather than disappearing during conversion.[^la
 ### Final check
 
 The running header uses two fields of color, an accent rail, the configured logo, a shortened title when space is tight, and the page number.
-

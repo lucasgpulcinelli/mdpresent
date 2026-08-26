@@ -42,7 +42,24 @@ The default theme draws a small built-in mark. Set `header.logo` to a file path 
 
 ## Markdown coverage
 
-The renderer handles headings, emphasis, strong text, strikeout, links, inline code, fenced code with syntax color, local or remote images, block quotes, rules, footnotes, task lists, ordered and unordered nested lists, tables that repeat their header across pages, and explicit `<!-- pagebreak -->` markers.
+The renderer handles headings, emphasis, strong text, strikeout, links, inline code, fenced code with syntax color, local or remote images, labeled figures, block quotes, admonitions, definition lists, subscript and superscript, rules, footnotes, task lists, ordered and unordered nested lists, tables that repeat their header across pages, and explicit `<!-- pagebreak -->` markers.
+
+Standalone image alt text is used as its label by default. A standard Markdown image title overrides it, and the `label` attribute is the most explicit option. Image attributes also accept an anchor plus `width` and `height` in `%`, `mm`, `cm`, `in`, `pt`, or `px`:
+
+```markdown
+![Accessible description](assets/chart.png "Figure 1 — Quarterly results"){#fig-results width="70%"}
+![Accessible description](assets/chart.png){label="Figure 2 — Detail" width=95mm}
+```
+
+Definition lists, callouts, and scientific notation use these extensions:
+
+```markdown
+Release gate
+: A condition that must pass before publishing.
+
+!!! warning "Review required"
+    Water is H~2~O and this sample contains 2^10^ records.
+```
 
 A Mermaid fence stays vector in the PDF:
 
@@ -54,4 +71,4 @@ flowchart LR
 ```
 ````
 
-Small diagrams stay in the text flow. Wide diagrams move to landscape pages. If fitting a diagram would shrink its labels below the configured threshold, mDpresent tiles it across overlapping pages. The relevant settings are `landscape_when_scale_below`, `split_when_scale_below`, `tile_scale`, and `tile_overlap_mm` under `mermaid`.
+Small diagrams stay in the text flow. If a chart would become too small, mDpresent gives it one dedicated page and expands that page in either dimension until the full vector chart fits at `minimum_font_size`. The custom page is never smaller than the configured paper size, and the following content returns to the normal page template. `dedicated_page_when_scale_below` controls when a chart leaves the text flow; `font_size` and `minimum_font_size` control its rendered and minimum PDF label sizes.

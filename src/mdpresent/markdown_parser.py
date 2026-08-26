@@ -10,7 +10,12 @@ from typing import Any
 import yaml
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
+from mdit_py_plugins.admon import admon_plugin
+from mdit_py_plugins.attrs import attrs_plugin
+from mdit_py_plugins.deflist import deflist_plugin
 from mdit_py_plugins.footnote import footnote_plugin
+from mdit_py_plugins.subscript import sub_plugin
+from mdit_py_plugins.superscript import superscript_plugin
 from mdit_py_plugins.tasklists import tasklists_plugin
 
 
@@ -50,6 +55,18 @@ class ListBlock(Block):
 
 @dataclass
 class QuoteBlock(Block):
+    blocks: list[Block]
+
+
+@dataclass
+class DefinitionListBlock(Block):
+    items: list[tuple[list[Token], list[list[Block]]]]
+
+
+@dataclass
+class AdmonitionBlock(Block):
+    kind: str
+    title: list[Token]
     blocks: list[Block]
 
 
@@ -107,6 +124,11 @@ def _markdown_parser() -> MarkdownIt:
     parser = MarkdownIt("commonmark", {"html": True, "linkify": True})
     parser.enable("table")
     parser.enable("strikethrough")
+    parser.use(attrs_plugin, allowed=("id", "class", "width", "height", "label"))
+    parser.use(deflist_plugin)
+    parser.use(admon_plugin)
+    parser.use(sub_plugin)
+    parser.use(superscript_plugin)
     parser.use(footnote_plugin)
     parser.use(tasklists_plugin, enabled=True, label=True)
     return parser
@@ -160,6 +182,12 @@ def _parse_blocks(tokens: list[Token], index: int, stop: set[str]) -> tuple[list
             nested, index = _parse_blocks(tokens, index + 1, {"blockquote_close"})
             blocks.append(QuoteBlock(nested))
             index += 1
+        elif token.type == "dl_open":
+            block, index = _parse_definition_list(tokens, index)
+            blocks.append(block)
+        elif token.type == "admonition_open":
+            block, index = _parse_admonition(tokens, index)
+            blocks.append(block)
         elif token.type == "fence":
             language = (token.info or "").strip().split(maxsplit=1)[0].lower()
             if language == "mermaid":
@@ -213,6 +241,45 @@ def _parse_list(tokens: list[Token], index: int) -> tuple[ListBlock, int]:
         items.append(item_blocks)
         index += 1
     return ListBlock(ordered=ordered, items=items, start=start), index + 1
+
+
+def _parse_definition_list(tokens: list[Token], index: int) -> tuple[DefinitionListBlock, int]:
+    items: list[tuple[list[Token], list[list[Block]]]] = []
+    index += 1
+    while index < len(tokens) and tokens[index].type != "dl_close":
+        if tokens[index].type != "dt_open":
+            index += 1
+            continue
+        term: list[Token] = []
+        if index + 1 < len(tokens) and tokens[index + 1].type == "inline":
+            term = list(tokens[index + 1].children or [])
+        index += 1
+        while index < len(tokens) and tokens[index].type != "dt_close":
+            index += 1
+        index += 1
+
+        definitions: list[list[Block]] = []
+        while index < len(tokens) and tokens[index].type == "dd_open":
+            blocks, index = _parse_blocks(tokens, index + 1, {"dd_close"})
+            definitions.append(blocks)
+            index += 1
+        items.append((term, definitions))
+    return DefinitionListBlock(items), index + 1
+
+
+def _parse_admonition(tokens: list[Token], index: int) -> tuple[AdmonitionBlock, int]:
+    opening = tokens[index]
+    kind = str(opening.meta.get("tag", "note"))
+    title: list[Token] = []
+    index += 1
+    if index < len(tokens) and tokens[index].type == "admonition_title_open":
+        if index + 1 < len(tokens) and tokens[index + 1].type == "inline":
+            title = list(tokens[index + 1].children or [])
+        while index < len(tokens) and tokens[index].type != "admonition_title_close":
+            index += 1
+        index += 1
+    blocks, index = _parse_blocks(tokens, index, {"admonition_close"})
+    return AdmonitionBlock(kind=kind, title=title, blocks=blocks), index + 1
 
 
 def _parse_table(tokens: list[Token], index: int) -> tuple[TableBlock, int]:
@@ -290,4 +357,3 @@ def inline_plain_text(tokens: list[Token]) -> str:
         elif token.children:
             parts.append(inline_plain_text(token.children))
     return re.sub(r"\s+", " ", "".join(parts)).strip()
-

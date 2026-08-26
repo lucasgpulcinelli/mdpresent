@@ -112,7 +112,12 @@ def _validate(values: dict[str, Any]) -> None:
         ("document.base_font_size", values["document"]["base_font_size"]),
         ("document.line_height", values["document"]["line_height"]),
         ("header.height_mm", values["header"]["height_mm"]),
-        ("mermaid.tile_scale", values["mermaid"]["tile_scale"]),
+        ("mermaid.font_size", values["mermaid"]["font_size"]),
+        ("mermaid.minimum_font_size", values["mermaid"]["minimum_font_size"]),
+        (
+            "mermaid.dedicated_page_when_scale_below",
+            values["mermaid"]["dedicated_page_when_scale_below"],
+        ),
     )
     for label, value in positive_values:
         if not isinstance(value, (int, float)) or value <= 0:

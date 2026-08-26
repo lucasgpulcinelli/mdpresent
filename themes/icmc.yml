@@ -88,8 +88,7 @@ mermaid:
   chrome: null
   render_width: 1800
   render_height: 1200
-  landscape_when_scale_below: 0.80
-  split_when_scale_below: 0.58
-  tile_scale: 0.68
-  tile_overlap_mm: 8
+  font_size: 16
+  minimum_font_size: 12
+  dedicated_page_when_scale_below: 0.80
   cache: true

@@ -5,9 +5,9 @@ author: Example Team
 
 # An intentionally overlong report title used to verify that the running header truncates cleanly
 
-## A wide diagram that needs several readable pages
+## A wide diagram that needs one oversized page
 
-The diagram below is intentionally wider than a landscape page. The PDF should tile it with overlap instead of turning it into a blurry strip.
+The diagram below is intentionally wider than a landscape page. The PDF should grow one page to contain the complete chart at a readable scale.
 
 ```mermaid
 flowchart LR
@@ -29,9 +29,9 @@ flowchart LR
     N15 --> N16[16 Publish final report]
 ```
 
-## Content after landscape pages
+## Content after the oversized page
 
-This paragraph must return to a portrait page after the tiled diagram.
+This paragraph must return to a portrait page after the oversized diagram.
 
 | Key | Value |
 |:--|:--|
@@ -44,4 +44,3 @@ This paragraph must return to a portrait page after the tiled diagram.
 ## Explicit page break
 
 This section starts on a new portrait page.
-

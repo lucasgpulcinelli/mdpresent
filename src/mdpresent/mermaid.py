@@ -187,6 +187,7 @@ class MermaidRenderer:
                 "clusterBkg": color("diagram_tertiary"),
                 "clusterBorder": color("accent_secondary"),
                 "titleColor": color("heading_text"),
+                "fontSize": f"{float(self.settings['font_size']):g}px",
             },
         }
 
