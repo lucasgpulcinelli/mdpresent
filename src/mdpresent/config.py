@@ -112,6 +112,7 @@ def _validate(values: dict[str, Any]) -> None:
         ("document.base_font_size", values["document"]["base_font_size"]),
         ("document.line_height", values["document"]["line_height"]),
         ("header.height_mm", values["header"]["height_mm"]),
+        ("spacing.list_bullet_size_pt", values["spacing"]["list_bullet_size_pt"]),
         ("mermaid.font_size", values["mermaid"]["font_size"]),
         ("mermaid.minimum_font_size", values["mermaid"]["minimum_font_size"]),
         (

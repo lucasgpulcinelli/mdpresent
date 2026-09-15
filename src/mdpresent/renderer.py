@@ -643,7 +643,8 @@ class MarkdownPdfRenderer:
 
     def _list_flowable(self, block: ListBlock, available_width: float) -> ListFlowable:
         items: list[ListItem] = []
-        indent = float(self.theme.data["spacing"]["list_indent_mm"]) * mm
+        spacing = self.theme.data["spacing"]
+        indent = float(spacing["list_indent_mm"]) * mm
         for item_blocks in block.items:
             contents: list[Flowable] = []
             for child in item_blocks:
@@ -656,11 +657,11 @@ class MarkdownPdfRenderer:
             bulletType="1" if block.ordered else "bullet",
             start=block.start if block.ordered else None,
             bulletFontName=self.theme.fonts.heading_bold,
-            bulletFontSize=8.5,
+            bulletFontSize=float(spacing["list_bullet_size_pt"]),
             bulletColor=self.theme.color("accent"),
             leftIndent=indent,
-            bulletOffsetY=1.5,
-            spaceAfter=float(self.theme.data["spacing"]["list_gap_mm"]) * mm,
+            bulletOffsetY=float(spacing["list_bullet_offset_y_pt"]),
+            spaceAfter=float(spacing["list_gap_mm"]) * mm,
         )
 
     def _definition_list_flowables(

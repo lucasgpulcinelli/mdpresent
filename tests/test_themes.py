@@ -39,6 +39,14 @@ def test_icmc_theme_uses_manual_palette_logo_and_droid_sans() -> None:
 
 
 @pytest.mark.parametrize("theme_name", ["icmc"])
+def test_brand_theme_list_markers_are_larger_and_centered(theme_name: str) -> None:
+    theme = load_theme(THEMES / f"{theme_name}.yml")
+    spacing = theme.data["spacing"]
+    assert spacing["list_bullet_size_pt"] > theme.data["document"]["base_font_size"]
+    assert spacing["list_bullet_offset_y_pt"] == 0
+
+
+@pytest.mark.parametrize("theme_name", ["icmc"])
 def test_brand_theme_renders_a_pdf(theme_name: str, tmp_path: Path) -> None:
     source = tmp_path / "sample.md"
     source.write_text("# Branded report\n\nBody text with **emphasis**.\n", encoding="utf-8")

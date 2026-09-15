@@ -81,6 +81,8 @@ spacing:
   heading_after_mm: 2.4
   list_indent_mm: 5.5
   list_gap_mm: 1.4
+  list_bullet_size_pt: 8.5
+  list_bullet_offset_y_pt: 1.5
 
 mermaid:
   cli: null
