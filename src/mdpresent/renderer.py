@@ -78,9 +78,15 @@ class ThemedDocTemplate(BaseDocTemplate):
         title = getattr(flowable, "_md_heading_text", None)
         if level is None or not title:
             return
+        if not hasattr(self, "_outline_heading_levels"):
+            self._outline_heading_levels: list[int] = []
+        while self._outline_heading_levels and self._outline_heading_levels[-1] >= level:
+            self._outline_heading_levels.pop()
+        outline_depth = len(self._outline_heading_levels)
+        self._outline_heading_levels.append(level)
         key = f"heading-{self.page}-{self.seq.nextf('heading')}"
         self.canv.bookmarkPage(key)
-        self.canv.addOutlineEntry(title, key, max(0, int(level) - 1), closed=False)
+        self.canv.addOutlineEntry(title, key, outline_depth, closed=False)
 
 
 class VectorDrawingFlowable(Flowable):

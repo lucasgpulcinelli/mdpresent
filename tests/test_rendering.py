@@ -34,6 +34,24 @@ def test_feature_document_renders_with_headers_and_text(tmp_path: Path) -> None:
     assert "Notes" in text
 
 
+def test_skipped_heading_levels_render_with_nested_pdf_outline(tmp_path: Path) -> None:
+    source = tmp_path / "skipped-headings.md"
+    source.write_text(
+        "## First section\n\n#### Detail\n\n## Second section\n\n# Main title\n\n### Subsection\n",
+        encoding="utf-8",
+    )
+
+    reader = PdfReader(render_markdown(source, tmp_path / "skipped-headings.pdf"))
+
+    assert [entry.title for entry in reader.outline if not isinstance(entry, list)] == [
+        "First section",
+        "Second section",
+        "Main title",
+    ]
+    assert [entry.title for entry in reader.outline[1]] == ["Detail"]
+    assert [entry.title for entry in reader.outline[4]] == ["Subsection"]
+
+
 def test_oversized_mermaid_gets_one_large_vector_page_then_returns_to_portrait(
     tmp_path: Path,
 ) -> None:
