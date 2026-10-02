@@ -4,7 +4,7 @@ mDpresent turns Markdown into a themed PDF. ReportLab lays out every page. Merma
 
 ## Set up
 
-The commands below use the requested shared virtual environment and the project's local Mermaid runtime.
+The commands below use the requested shared virtual environment and the project's local Mermaid CLI 12 runtime. Node.js 22.13 or later is required; npm installs Puppeteer 25 with the CLI.
 
 ```bash
 cd /home/lucasegp/mdpresent
@@ -13,6 +13,8 @@ PUPPETEER_SKIP_DOWNLOAD=1 npm install
 ```
 
 Chrome or Chromium must be installed. The renderer finds `google-chrome`, `chromium`, or `chromium-browser`; `mermaid.chrome` can point to a different executable.
+
+Mermaid CLI 12 replaces `--width` and `--height` with `--size`. mDpresent keeps the existing `mermaid.render_width` and `mermaid.render_height` theme settings and passes their larger value as `--size`, which sets a square browser viewport and the SVG's maximum dimensions. Diagrams remain vector drawings and are fitted to PDF pages by mDpresent. Version 11 cached diagrams are regenerated. If using a global `mmdc` or `mermaid.cli`, update that installation to version 12 too.
 
 ## Render a document
 

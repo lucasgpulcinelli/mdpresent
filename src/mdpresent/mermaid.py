@@ -43,7 +43,12 @@ class MermaidRenderer:
     def render(self, code: str) -> VectorAsset:
         config = self._mermaid_config()
         key_material = json.dumps(
-            {"code": code, "config": config, "width": self.settings["render_width"]},
+            {
+                "renderer": "mermaid-cli-12",
+                "code": code,
+                "config": config,
+                "size": self._render_size(),
+            },
             sort_keys=True,
         )
         digest = hashlib.sha256(key_material.encode("utf-8")).hexdigest()[:24]
@@ -85,10 +90,8 @@ class MermaidRenderer:
                 str(config_path),
                 "--puppeteerConfigFile",
                 str(puppeteer_path),
-                "--width",
-                str(self.settings["render_width"]),
-                "--height",
-                str(self.settings["render_height"]),
+                "--size",
+                str(self._render_size()),
                 "--quiet",
             ]
             result = subprocess.run(
@@ -103,6 +106,10 @@ class MermaidRenderer:
                 detail = (result.stderr or result.stdout).strip()
                 raise MermaidError(f"Mermaid rendering failed:\n{detail}")
             shutil.copyfile(output_path, destination)
+
+    def _render_size(self) -> int:
+        # Mermaid CLI 12 uses a square viewport with one size in CSS pixels.
+        return max(self.settings["render_width"], self.settings["render_height"])
 
     def _find_cli(self) -> Path:
         configured = self.settings.get("cli")
