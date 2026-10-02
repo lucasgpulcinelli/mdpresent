@@ -566,13 +566,16 @@ class MarkdownPdfRenderer:
                     nested.append(Paragraph(self._inline_markup(child.children), self.styles["blockquote"]))
                 else:
                     nested.extend(self._block_flowables(child, available_width - 10 * mm))
-            table = Table([[nested]], colWidths=[available_width], hAlign="LEFT")
+            # A quote occupies one cell, so allow splitting within that row
+            # when its paragraphs or lists exceed the remaining page height.
+            table = Table([[nested]], colWidths=[available_width], hAlign="LEFT", splitInRow=1)
             table.setStyle(
                 TableStyle(
                     [
                         ("BACKGROUND", (0, 0), (-1, -1), self.theme.color("blockquote_background")),
                         ("BOX", (0, 0), (-1, -1), 0, self.theme.color("blockquote_background")),
                         ("LINEBEFORE", (0, 0), (0, -1), 4, self.theme.color("blockquote_border")),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
                         ("LEFTPADDING", (0, 0), (-1, -1), 5 * mm),
                         ("RIGHTPADDING", (0, 0), (-1, -1), 4 * mm),
                         ("TOPPADDING", (0, 0), (-1, -1), 3 * mm),

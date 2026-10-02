@@ -2,6 +2,7 @@ from pathlib import Path
 
 from PIL import Image as PillowImage
 from pypdf import PdfReader
+import pytest
 
 from mdpresent.config import load_theme
 from mdpresent.renderer import MarkdownPdfRenderer, render_markdown
@@ -118,3 +119,40 @@ See [Figure 1](#fig-results).
         for page in reader.pages
         for reference in (page.get("/Resources", {}).get("/XObject", {}) or {}).values()
     )
+
+
+@pytest.mark.parametrize("content_kind", ["paragraphs", "single_paragraph", "list", "nested_quote"])
+def test_long_blockquote_splits_across_pages_without_losing_content(
+    tmp_path: Path, content_kind: str,
+) -> None:
+    markers = [f"QUOTE{index:03d}" for index in range(80)]
+    sentences = [
+        f"{marker} Quoted material must remain readable and complete across page boundaries."
+        for marker in markers
+    ]
+    if content_kind == "single_paragraph":
+        quoted = "> " + " ".join(sentences)
+    elif content_kind == "list":
+        quoted = "> Introduction to the quoted list.\n>\n" + "\n".join(
+            f"> {index}. {sentence}" for index, sentence in enumerate(sentences, start=1)
+        )
+    else:
+        prefix = "> > " if content_kind == "nested_quote" else "> "
+        separator = "\n> >\n" if content_kind == "nested_quote" else "\n>\n"
+        quoted = separator.join(prefix + sentence for sentence in sentences)
+    source = tmp_path / "long-quote.md"
+    source.write_text(f"Before the quote.\n\n{quoted}\n\nAfter the quote.\n", encoding="utf-8")
+    theme = tmp_path / "theme.yml"
+    theme.write_text(
+        "document:\n  base_font_size: 10.5\n  line_height: 1.4\n",
+        encoding="utf-8",
+    )
+
+    reader = PdfReader(render_markdown(source, tmp_path / "long-quote.pdf", theme))
+
+    assert len(reader.pages) >= 2
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    expected = ["Before the quote.", *markers, "After the quote."]
+    assert all(text.count(marker) == 1 for marker in expected)
+    positions = [text.index(marker) for marker in expected]
+    assert positions == sorted(positions)
